@@ -1,1 +1,200 @@
-<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>xyu</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:ui-monospace,Menlo,monospace;background:#fafafa;color:#222;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center}main{max-width:640px;padding:2rem}h1{font-size:1.8rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .6rem}p{color:#666;line-height:1.7;margin:0}</style></head><body><main><h1>xyu</h1><p>thanatophilia.abc.sd</p></main></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="thanatophilia.abc.sd — a tiny terminal">
+<title>thanatophilia@abc-sd</title>
+<style>
+  :root { --fg:#9fefb9; --dim:#5a8f72; --bg:#0a0f0b; --prompt:#7ee787; --accent:#ffb86c; }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--fg); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace; font-size:14px; line-height:1.6; display:flex; justify-content:center; padding:24px 12px; }
+  #term { width:100%; max-width:880px; height:fit-content; background:rgba(255,255,255,.02); border:1px solid rgba(158,239,185,.14); border-radius:10px; box-shadow:0 0 60px rgba(126,231,135,.05); overflow:hidden; }
+  .bar { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid rgba(158,239,185,.14); background:rgba(158,239,185,.04); font-size:12px; color:var(--dim); }
+  .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .dot.r { background:#ff5f56; } .dot.y { background:#ffbd2e; } .dot.g { background:#27c93f; }
+  .title { margin-left:8px; letter-spacing:.3px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .body { padding:18px 18px 26px; overflow-x:auto; word-break:break-word; }
+  .line { white-space:pre-wrap; }
+  .dim { color:var(--dim); }
+  .prompt { color:var(--prompt); }
+  .path { color:var(--accent); }
+  .cursor { display:inline-block; width:8px; height:14px; background:var(--fg); vertical-align:text-bottom; animation:blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ::selection { background:rgba(126,231,135,.25); }
+  @media (max-width:640px) { body { font-size:12px; padding:12px 6px; } .body { padding:12px 10px 20px; } }
+</style>
+</head>
+<body>
+<div id="term">
+  <div class="bar">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="title">thanatophilia@abc-sd — zsh (fake)</span>
+  </div>
+  <div id="out" class="body"></div>
+</div>
+<script>
+(function(){
+  var out = document.getElementById('out');
+  var buffer = '';
+  var current = null;
+  var busy = false;
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  function add(html){
+    var d = document.createElement('div');
+    d.className = 'line';
+    d.innerHTML = html;
+    out.appendChild(d);
+    window.scrollTo(0, document.body.scrollHeight);
+    return d;
+  }
+
+  function promptHtml(){
+    return '<span class="prompt">guest</span><span class="dim">@</span><span class="path">abc-sd</span><span class="dim">:~$ </span>';
+  }
+
+  function typeLine(text, speed, cls){
+    return new Promise(function(resolve){
+      var d = document.createElement('div');
+      d.className = 'line' + (cls ? ' ' + cls : '');
+      out.appendChild(d);
+      var i = 0;
+      (function step(){
+        if(i <= text.length){
+          d.textContent = text.slice(0, i);
+          i++;
+          window.scrollTo(0, document.body.scrollHeight);
+          setTimeout(step, speed);
+        } else { resolve(); }
+      })();
+    });
+  }
+
+  function freshInput(){
+    current = add(promptHtml() + '<span class="in"></span><span class="cursor"></span>');
+    updateInput();
+  }
+
+  function updateInput(){
+    if(!current) return;
+    var inSpan = current.querySelector('.in');
+    if(inSpan) inSpan.textContent = buffer;
+  }
+
+  var art = [
+    '      _____',
+    '     /     \\',
+    '    | ( ) ( ) |',
+    '     \\  ^  /',
+    '      |||||',
+    '      |||||',
+    ''
+  ];
+
+  var info = [
+    'guest@thanatophilia.abc-sd',
+    '──────────────────────────',
+    'os      static html · github pages',
+    'host    thanatophilia.abc-sd',
+    'kernel  this page only',
+    'shell   javascript pretending to be zsh',
+    'blog    xyu-ning.loc.cc',
+    'motto   理性 · 干净 · 有始有终',
+    ''
+  ];
+
+  var cmds = {
+    help: function(){
+      add('available commands\n' +
+          '  <span class="path">help</span>        show this list\n' +
+          '  <span class="path">whoami</span>      who are you\n' +
+          '  <span class="path">blog</span>        open the blog\n' +
+          '  <span class="path">projects</span>    what lives here\n' +
+          '  <span class="path">fetch</span>       system info\n' +
+          '  <span class="path">date</span>        current time\n' +
+          '  <span class="path">clear</span>       clear the screen\n' +
+          '  <span class="path">sudo</span>        try it\n' +
+          '  <span class="path">exit</span>        there is no exit\n' +
+          '  <span class="path">kiss</span>        do not tell anyone');
+    },
+    whoami: function(){
+      add('guest@thanatophilia.abc-sd\nrole: visitor of a small corner\npermission: read everything, ask anything');
+    },
+    blog: function(){
+      add('opening <span class="dim">https://xyu-ning.loc.cc</span> ...\n<a href="https://xyu-ning.loc.cc" target="_blank" rel="noopener">xyu-ning.loc.cc</a>  <span class="dim">(click to go)</span>');
+    },
+    projects: function(){
+      add('projects\n' +
+          '  thanatophilia.github.io    the blog · xyu-ning.loc.cc\n' +
+          '  xyu-ime                    a rime input method\n' +
+          '  abc-sd                     this terminal\n' +
+          'status: all alive');
+    },
+    fetch: function(){
+      var all = art.concat(info);
+      all.forEach(function(l){ add(l); });
+    },
+    date: function(){
+      add(new Date().toString());
+    },
+    clear: function(){
+      out.innerHTML = '';
+    },
+    sudo: function(){
+      add('<span class="dim">guest is not in the sudoers file.\nthis incident has been reported to /dev/null.</span>');
+    },
+    exit: function(){
+      add('there is no exit. this is the entire site. :)');
+    },
+    kiss: function(){
+      add('you typed it.\n' +
+          '   ♥\n' +
+          'considered: sent.\n' +
+          'the rest stays between us.');
+    }
+  };
+
+  function run(cmd){
+    var parts = cmd.trim().split(/\s+/);
+    var name = (parts[0] || '').toLowerCase();
+    if(name === '') return;
+    if(cmds[name]){ cmds[name](parts.slice(1)); }
+    else { add('command not found: <span class="path">' + cmd.trim() + '</span> — type <span class="path">help</span> to see what i can do.'); }
+    add('');
+  }
+
+  function process(){
+    add(promptHtml() + buffer.replace(/</g,'&lt;'));
+    run(buffer);
+    buffer = '';
+    freshInput();
+  }
+
+  document.addEventListener('keydown', function(e){
+    if(busy) return;
+    if(e.key === 'Enter'){ e.preventDefault(); process(); return; }
+    if(e.key === 'Backspace'){ buffer = buffer.slice(0, -1); updateInput(); return; }
+    if(e.ctrlKey && (e.key === 'l' || e.key === 'L')){ e.preventDefault(); out.innerHTML=''; freshInput(); return; }
+    if(e.key.length === 1){ buffer += e.key; updateInput(); }
+  });
+
+  async function boot(){
+    busy = true;
+    await sleep(300);
+    var all = art.concat(info);
+    for(var i=0; i<all.length; i++){ await typeLine(all[i], 6, all[i].indexOf('@') > 0 ? undefined : 'dim'); }
+    await typeLine('<span class="dim">type <span class="path">help</span> to begin.</span>'.replace(/&lt;/g,'<').replace(/&gt;/g,'>'), 14);
+    await sleep(200);
+    busy = false;
+    freshInput();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
